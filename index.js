@@ -23,17 +23,16 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try{
         const serviceCollection = client.db('photoGraphar').collection('service');
+        const reviewsCollection = client.db('photoGraphar').collection('reviews');
+        
         app.get('/homeservices', async(req, res) => {
             const query = {};
-            // const sort = ObjectId.getTimestamp();
-            // console.log(sort);
             const cursor = serviceCollection.find(query).sort({_id : -1 });
             const service = await cursor.limit(3).toArray();
             res.send(service);
         })
         app.post('/service', async(req, res) => {
-            const service = req.body;            
-            console.log(service);
+            const service = req.body;     
             const result = await serviceCollection.insertOne(service);
             res.send(result)
         })
@@ -60,6 +59,51 @@ async function run() {
             const result = await serviceCollection.updateOne(filter, updatedUser, option);
             res.send(result)
         })
+
+
+        // reviews api
+
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewsCollection.insertOne(review)
+            res.send(result)
+            console.log(result)
+        })
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id:ObjectId(id)};
+            const review = await reviewsCollection.findOne(query);
+            res.send(review)
+        })
+
+        app.get('/reviews', async(req, res) => {
+            let query = {};
+            if(req.query.service){
+                query = {
+                    service: req.query.service
+                }
+            }
+            const cursor = reviewsCollection.find(query);
+            const review = await cursor.toArray();
+            res.send(review);
+        })
+        app.put('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id : ObjectId(id)};
+            const review = req.body;
+            console.log(review)
+            const option = {upsert : true};
+            const updatedReview = {
+                $set: {
+                    userName : review.userName,
+                    review : review.review,
+                    ratting : review.ratting
+                }
+            }
+            const result = await reviewsCollection.updateOne(filter, updatedReview, option);
+            res.send(result)
+        })
+
     }
     finally{
 
