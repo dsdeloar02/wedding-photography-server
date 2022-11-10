@@ -1,6 +1,7 @@
 const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
 const app = express();
 require('dotenv').config();
 const port = process.env.PORT || 5000;
@@ -20,10 +21,33 @@ const uri = `mongodb+srv://${dbUser}:${dbPassword}@cluster0.myxtuht.mongodb.net/
 console.log(uri);
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT (req, res, next){
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        return res.status(401).send({message: 'Unauthorized access'})
+    }
+    
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded){
+        if(err){
+            return res.status(403).send({message : 'Forbidden Access'})
+        }
+        req.decoded = decoded;
+        next()
+    })
+}
+
 async function run() {
     try{
         const serviceCollection = client.db('photoGraphar').collection('service');
         const reviewsCollection = client.db('photoGraphar').collection('reviews');
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d'})
+            res.send({token});
+        })
         
         app.get('/homeservices', async(req, res) => {
             const query = {};
@@ -116,7 +140,12 @@ async function run() {
         //     res.send(myreviews);
         // })
 
-        app.get('/myreviews', async(req, res) => {
+        app.get('/myreviews', verifyJWT, async(req, res) => {
+            const decoded = req.decoded;
+            
+            if(decoded.email !== req.query.userEmail){
+                res.status(403).send({message : 'unauthorized access'})
+            }
             console.log(req.query)
             let query = {};
             if(req.query.userEmail){
