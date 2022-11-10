@@ -42,6 +42,21 @@ async function run() {
     try{
         const serviceCollection = client.db('photoGraphar').collection('service');
         const reviewsCollection = client.db('photoGraphar').collection('reviews');
+        const instrumentCollection = client.db('photoGraphar').collection('instrument');
+        const bannerCollection = client.db('photoGraphar').collection('banner');
+
+        app.get('/banners', async(req, res) => {
+            const query = {};
+            const cursor = bannerCollection.find(query);
+            const service = await cursor.toArray();
+            res.send(service);
+        })
+        app.get('/instruments', async(req, res) => {
+            const query = {};
+            const cursor = instrumentCollection.find(query);
+            const service = await cursor.toArray();
+            res.send(service);
+        })
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -55,6 +70,13 @@ async function run() {
             const service = await cursor.limit(3).toArray();
             res.send(service);
         })
+        app.get('/allservice', async(req, res) => {
+            const query = {};
+            const cursor = serviceCollection.find(query);
+            const service = await cursor.toArray();
+            res.send(service);
+        })
+
         app.post('/service', async(req, res) => {
             const service = req.body;     
             const result = await serviceCollection.insertOne(service);
@@ -84,6 +106,13 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/homeservices/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = {_id:ObjectId(id)}
+            const result = await serviceCollection.deleteOne(query)
+            console.log(result)
+            res.send(result)
+        })
 
         // reviews api
 
@@ -107,7 +136,7 @@ async function run() {
                     service: req.query.service
                 }
             }
-            const cursor = reviewsCollection.find(query);
+            const cursor = reviewsCollection.find(query).sort({_id : -1 });
             const review = await cursor.toArray();
             res.send(review);
         })
@@ -157,6 +186,8 @@ async function run() {
             const myreview = await cursor.toArray();
             res.send(myreview);
         })
+
+
 
     }
     finally{
